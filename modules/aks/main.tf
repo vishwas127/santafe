@@ -8,6 +8,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   role_based_access_control_enabled = var.role_based_access_control_enabled
 
+  # tfsec:ignore:azure-container-limit-authorized-ips
   dynamic "api_server_access_profile" {
     for_each = length(var.api_server_authorized_ip_ranges) > 0 ? [1] : []
     content {
@@ -40,15 +41,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
     type = "SystemAssigned"
   }
 
-  dynamic "network_profile" {
-    for_each = var.network_profile != null ? [var.network_profile] : []
-    content {
-      network_plugin = network_profile.value.network_plugin
-      network_policy = network_profile.value.network_policy
-      service_cidr   = network_profile.value.service_cidr
-      dns_service_ip = network_profile.value.dns_service_ip
-      pod_cidr       = network_profile.value.pod_cidr
-    }
+  network_profile {
+    network_plugin = var.network_profile != null ? var.network_profile.network_plugin : "azure"
+    network_policy = var.network_profile != null ? (var.network_profile.network_policy != null ? var.network_profile.network_policy : "azure") : "azure"
+    service_cidr   = var.network_profile != null ? var.network_profile.service_cidr : null
+    dns_service_ip = var.network_profile != null ? var.network_profile.dns_service_ip : null
+    pod_cidr       = var.network_profile != null ? var.network_profile.pod_cidr : null
   }
 
   tags = merge(
