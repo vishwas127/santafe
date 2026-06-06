@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [dev, prod]
+        environment: [dev]
       fail-fast: false
 
     env:
