@@ -1,6 +1,6 @@
 project_name = "santafe"
 environment  = "dev"
-location     = "East US"
+location     = "westindia"
 
 aks_role_based_access_control_enabled = true
 aks_api_server_authorized_ip_ranges   = ["0.0.0.0/32"] # Replace with your actual IP ranges
@@ -17,4 +17,6 @@ aks_default_node_pool = {
 aks_network_profile = {
   network_plugin = "azure"
   network_policy = "azure"
+  service_cidr   = "10.2.0.0/16"
+  dns_service_ip = "10.2.0.10"
 }
