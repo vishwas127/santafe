@@ -69,5 +69,10 @@ module "aks" {
   network_profile      = var.aks_network_profile
   acr_id               = module.acr.acr_id
   enable_acr_pull_role = true
-  tags                 = local.common_tags
+
+  # Security Fixes (passed via variables)
+  role_based_access_control_enabled = var.aks_role_based_access_control_enabled
+  api_server_authorized_ip_ranges   = var.aks_api_server_authorized_ip_ranges
+
+  tags = local.common_tags
 }

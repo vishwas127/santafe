@@ -66,8 +66,10 @@ module "aks" {
     })
   }
 
-  network_profile = var.aks_network_profile
-  tags            = local.common_tags
+  network_profile                   = var.aks_network_profile
+  role_based_access_control_enabled = var.aks_role_based_access_control_enabled
+  api_server_authorized_ip_ranges   = var.aks_api_server_authorized_ip_ranges
+  tags                              = local.common_tags
 }
 
 resource "azurerm_role_assignment" "aks_acr_pull" {

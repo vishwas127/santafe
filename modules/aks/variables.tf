@@ -59,12 +59,24 @@ variable "network_profile" {
   description = "Network profile configuration"
   type = object({
     network_plugin = string
-    network_policy = optional(string)
+    network_policy = optional(string, "azure")
     service_cidr   = optional(string)
     dns_service_ip = optional(string)
     pod_cidr       = optional(string)
   })
   default = null
+}
+
+variable "role_based_access_control_enabled" {
+  description = "Whether RBAC is enabled"
+  type        = bool
+  default     = true
+}
+
+variable "api_server_authorized_ip_ranges" {
+  description = "Authorized IP ranges for API server access"
+  type        = list(string)
+  default     = []
 }
 
 variable "acr_id" {

@@ -43,6 +43,18 @@ variable "aks_network_profile" {
   default     = null
 }
 
+variable "aks_role_based_access_control_enabled" {
+  description = "Whether RBAC is enabled for AKS"
+  type        = bool
+  default     = true
+}
+
+variable "aks_api_server_authorized_ip_ranges" {
+  description = "Authorized IP ranges for AKS API server"
+  type        = list(string)
+  default     = ["0.0.0.0/32"]
+}
+
 variable "tags" {
   description = "Tags"
   type        = map(string)
