@@ -31,7 +31,6 @@ jobs:
         environment: [dev, prod]
       fail-fast: false
 
-    environment: ${{ matrix.environment }}
     env:
       ARM_USE_OIDC: true
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
