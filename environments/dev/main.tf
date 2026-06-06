@@ -35,7 +35,7 @@ module "network" {
   }
   tags = local.common_tags
 }
-
+/*
 module "acr" {
   source = "../../modules/acr"
 
@@ -71,7 +71,7 @@ module "aks" {
   api_server_authorized_ip_ranges   = var.aks_api_server_authorized_ip_ranges
   tags                              = local.common_tags
 }
-
+*/
 resource "azurerm_role_assignment" "aks_acr_pull" {
   principal_id                     = module.aks.kubelet_identity_id
   role_definition_name             = "AcrPull"
