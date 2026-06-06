@@ -15,6 +15,8 @@ jobs:
   analyze-and-plan:
     name: 'Analyze & Plan'
     runs-on: ubuntu-latest
+    env:
+      ARM_USE_OIDC: true
     defaults:
       run:
         working-directory: environments/dev
@@ -44,7 +46,8 @@ jobs:
             -backend-config="resource_group_name=${{ vars.BACKEND_RG_NAME }}" \
             -backend-config="storage_account_name=${{ vars.BACKEND_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ vars.BACKEND_CONTAINER_NAME }}" \
-            -backend-config="key=${{ vars.BACKEND_KEY }}"
+            -backend-config="key=${{ vars.BACKEND_KEY }}" \
+            -backend-config="use_oidc=true"
 
       - name: Terraform Validate
         run: terraform validate
@@ -79,8 +82,10 @@ jobs:
     needs: analyze-and-plan
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    env:
+      ARM_USE_OIDC: true
     environment: 
-      name: production # This environment should be configured with "Required reviewers" in GitHub settings
+      name: prod # This environment should be configured with "Required reviewers" in GitHub settings
     defaults:
       run:
         working-directory: environments/dev
@@ -113,7 +118,8 @@ jobs:
             -backend-config="resource_group_name=${{ vars.BACKEND_RG_NAME }}" \
             -backend-config="storage_account_name=${{ vars.BACKEND_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ vars.BACKEND_CONTAINER_NAME }}" \
-            -backend-config="key=${{ vars.BACKEND_KEY }}"
+            -backend-config="key=${{ vars.BACKEND_KEY }}" \
+            -backend-config="use_oidc=true"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
