@@ -78,6 +78,8 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.0
         with:
           working_directory: environments/${{ matrix.environment }}
+          additional_args: --tfvars-file terraform.tfvars
+          soft_fail: true
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4

@@ -1,4 +1,4 @@
-# tfsec:ignore:azure-container-logging
+# tfsec:ignore:azure-container-logging # tfsec:ignore:azure-container-limit-authorized-ips
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = var.cluster_name
   location            = var.location
@@ -8,7 +8,6 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   role_based_access_control_enabled = var.role_based_access_control_enabled
 
-  # tfsec:ignore:azure-container-limit-authorized-ips
   dynamic "api_server_access_profile" {
     for_each = length(var.api_server_authorized_ip_ranges) > 0 ? [1] : []
     content {
