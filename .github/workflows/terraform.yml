@@ -57,6 +57,13 @@ jobs:
         with:
           terraform_version: "1.10.0"
 
+      - name: Debug OIDC
+        run: |
+          echo "ARM_USE_OIDC=$ARM_USE_OIDC"
+          if [ -n "$ARM_CLIENT_ID" ]; then echo "CLIENT_ID=SET"; else echo "CLIENT_ID=MISSING"; fi
+          if [ -n "$ARM_TENANT_ID" ]; then echo "TENANT_ID=SET"; else echo "TENANT_ID=MISSING"; fi
+          if [ -n "$ARM_SUBSCRIPTION_ID" ]; then echo "SUBSCRIPTION_ID=SET"; else echo "SUBSCRIPTION_ID=MISSING"; fi
+
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check -recursive ../../
