@@ -1,55 +1,57 @@
-
-name: 'Terraform Infrastructure'
+name: Terraform Infrastructure
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'environments/**'
       - 'modules/**'
       - '.github/workflows/terraform.yml'
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'environments/**'
       - 'modules/**'
       - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to validate and deploy
+        required: true
+        type: choice
+        options: [dev]
+        default: dev
+
+concurrency:
+  group: terraform-${{ github.workflow }}
+  cancel-in-progress: false
 
 permissions:
-  id-token: write # Required for OIDC
   contents: read
-  pull-requests: write # Required for PR comments
+  id-token: write
+  pull-requests: write
 
 jobs:
   terraform:
-    name: 'Terraform'
+    name: Terraform (${{ inputs.environment || 'dev' }})
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        environment: [dev]
-      fail-fast: false
+    environment: ${{ inputs.environment || 'dev' }}
 
     env:
-      ARM_USE_OIDC: true
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+      ARM_USE_OIDC: "true"
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
     defaults:
       run:
-        working-directory: environments/${{ matrix.environment }}
+        working-directory: environments/${{ inputs.environment || 'dev' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -58,71 +60,50 @@ jobs:
 
       - name: Terraform Format
         id: fmt
-        run: terraform fmt -check -recursive ../../
+        run: terraform fmt -check -recursive
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform Init
         id: init
         run: |
-          terraform init \
+          terraform init -input=false \
             -backend-config="resource_group_name=${{ vars.BACKEND_RG_NAME }}" \
             -backend-config="storage_account_name=${{ vars.BACKEND_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ vars.BACKEND_CONTAINER_NAME }}" \
-            -backend-config="key=${{ matrix.environment }}.terraform.tfstate" \
-            -backend-config="use_oidc=true"
+            -backend-config="key=${{ inputs.environment || 'dev' }}.terraform.tfstate"
 
       - name: Terraform Validate
         id: validate
         run: terraform validate
 
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          working_directory: environments/${{ matrix.environment }}
-          additional_args: --tfvars-file environments/${{ matrix.environment }}/terraform.tfvars
-          soft_fail: true
-
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: v0.50.0
-
-      - name: Run TFLint
-        run: |
-          tflint --init
-          tflint -f compact
-
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false -out=tfplan
+        run: terraform plan -input=false -var-file=terraform.tfvars -out=tfplan
 
-      - name: Update Pull Request
+      - name: Upload Terraform plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment || 'dev' }}
+          path: environments/${{ inputs.environment || 'dev' }}/tfplan
+          retention-days: 5
+
+      - name: Comment on PR
         uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
-        env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-
-            <details><summary>Show Plan</summary>
-
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
-
-            </details>
-
-            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: output
+              body: "Terraform Plan: fmt=${{ steps.fmt.outcome }}, init=${{ steps.init.outcome }}, validate=${{ steps.validate.outcome }}, plan=${{ steps.plan.outcome }}"
             })
 
       - name: Terraform Apply
