@@ -1,6 +1,11 @@
 variable "cluster_name" {
   description = "Name of the AKS cluster"
   type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]{1,63}$", var.cluster_name))
+    error_message = "cluster_name must be 1-63 characters and contain only letters, numbers, and hyphens."
+  }
 }
 
 variable "resource_group_name" {
@@ -16,6 +21,11 @@ variable "location" {
 variable "dns_prefix" {
   description = "DNS prefix for the cluster"
   type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]{1,54}$", var.dns_prefix))
+    error_message = "dns_prefix must be 1-54 characters and contain only letters, numbers, and hyphens."
+  }
 }
 
 variable "kubernetes_version" {
@@ -39,6 +49,20 @@ variable "default_node_pool" {
       max_surge = string
     }))
   })
+
+  validation {
+    condition = (
+      var.default_node_pool.node_count >= 1 &&
+      (!var.default_node_pool.auto_scaling_enabled ||
+        (var.default_node_pool.min_count != null &&
+          var.default_node_pool.max_count != null &&
+          var.default_node_pool.min_count >= 1 &&
+          var.default_node_pool.max_count >= var.default_node_pool.min_count &&
+          var.default_node_pool.node_count >= var.default_node_pool.min_count &&
+      var.default_node_pool.node_count <= var.default_node_pool.max_count))
+    )
+    error_message = "The default node pool must have at least one node; when autoscaling is enabled, min_count and max_count must bound node_count."
+  }
 }
 
 variable "additional_node_pools" {
@@ -53,6 +77,22 @@ variable "additional_node_pools" {
     mode                 = optional(string, "User")
   }))
   default = {}
+
+  validation {
+    condition = alltrue([
+      for name, pool in var.additional_node_pools :
+      can(regex("^[a-z][a-z0-9]{0,11}$", name)) &&
+      pool.node_count >= 1 &&
+      (!pool.auto_scaling_enabled ||
+        (pool.min_count != null &&
+          pool.max_count != null &&
+          pool.min_count >= 1 &&
+          pool.max_count >= pool.min_count &&
+          pool.node_count >= pool.min_count &&
+      pool.node_count <= pool.max_count))
+    ])
+    error_message = "Additional node pool names must be 1-12 lowercase alphanumeric characters starting with a letter, and autoscaling bounds must include node_count."
+  }
 }
 
 variable "network_profile" {
@@ -65,6 +105,14 @@ variable "network_profile" {
     pod_cidr       = optional(string)
   })
   default = null
+
+  validation {
+    condition = var.network_profile == null || (
+      contains(["azure", "kubenet", "none"], var.network_profile.network_plugin) &&
+      (var.network_profile.network_policy == null || contains(["azure", "calico", "none"], var.network_profile.network_policy))
+    )
+    error_message = "network_profile must use a supported network_plugin (azure, kubenet, or none) and network_policy (azure, calico, or none)."
+  }
 }
 
 variable "role_based_access_control_enabled" {
@@ -83,6 +131,11 @@ variable "acr_id" {
   description = "ACR ID for role assignment (optional)"
   type        = string
   default     = null
+
+  validation {
+    condition     = !var.enable_acr_pull_role || var.acr_id != null
+    error_message = "acr_id must be set when enable_acr_pull_role is true."
+  }
 }
 
 variable "enable_acr_pull_role" {

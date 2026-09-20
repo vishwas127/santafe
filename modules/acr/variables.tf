@@ -1,6 +1,11 @@
 variable "registry_name" {
   description = "Name of the ACR"
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9]{5,50}$", var.registry_name))
+    error_message = "registry_name must be 5-50 characters and contain only lowercase letters and numbers."
+  }
 }
 
 variable "resource_group_name" {
@@ -17,6 +22,11 @@ variable "sku" {
   description = "ACR SKU (Basic, Standard, Premium)"
   type        = string
   default     = "Standard"
+
+  validation {
+    condition     = contains(["Basic", "Standard", "Premium"], var.sku)
+    error_message = "sku must be one of Basic, Standard, or Premium."
+  }
 }
 
 variable "admin_enabled" {
@@ -33,6 +43,11 @@ variable "georeplications" {
     tags                    = map(string)
   }))
   default = []
+
+  validation {
+    condition     = var.sku == "Premium" || length(var.georeplications) == 0
+    error_message = "georeplications can only be configured when sku is Premium."
+  }
 }
 
 variable "tags" {
